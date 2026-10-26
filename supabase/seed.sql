@@ -1,0 +1,1 @@
+-- A aplicação não precisa de dados de exemplo para iniciar.

@@ -1,0 +1,51 @@
+.content {
+  overflow: hidden;
+}
+
+.content[data-state="open"] {
+  animation: expand 200ms ease-out;
+}
+
+.content[data-state="closed"] {
+  animation: collapse 200ms ease-out;
+}
+
+.chevron {
+  transition: transform 200ms ease-out;
+}
+
+.trigger[data-state="closed"] .chevron {
+  transform: rotate(-90deg);
+}
+
+@keyframes expand {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes collapse {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content[data-state],
+  .chevron {
+    animation-duration: 1ms;
+    transition-duration: 1ms;
+  }
+}

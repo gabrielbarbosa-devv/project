@@ -1,0 +1,23 @@
+import * as React from "react";
+
+// Use the existing Sheet navigation on phones and tablets so the work area
+// stays wide enough for readable Kanban columns.
+const MOBILE_QUERY = "(max-width: 1023px)";
+
+function subscribe(onChange: () => void) {
+  const mediaQuery = window.matchMedia(MOBILE_QUERY);
+  mediaQuery.addEventListener("change", onChange);
+  return () => mediaQuery.removeEventListener("change", onChange);
+}
+
+function getSnapshot() {
+  return window.matchMedia(MOBILE_QUERY).matches;
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
+export function useIsMobile() {
+  return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}

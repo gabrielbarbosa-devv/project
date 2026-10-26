@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,7 +23,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
@@ -28,7 +34,15 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    ".next-amora-prompt04-ef14b007/types/**/*.ts",
+    ".next-amora-prompt04-ef14b007/dev/types/**/*.ts",
+    ".next-amora-etapa051-20261025/types/**/*.ts",
+    ".next-amora-etapa051-20261025/dev/types/**/*.ts",
+    ".next-amora-etapa052-20261025/types/**/*.ts",
+    ".next-amora-etapa052-20261025/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
