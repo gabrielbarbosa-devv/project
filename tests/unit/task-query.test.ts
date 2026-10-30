@@ -96,6 +96,11 @@ describe("task filter URL state", () => {
     expect(parseTaskFilters({ state: "completed", sort: "due" })).toMatchObject({ statuses: ["completed"], sort: "due_soon" });
   });
 
+  it("keeps project roadmaps in manual order unless a sort is explicitly selected", () => {
+    expect(parseTaskFilters({ project: ids.one })).toMatchObject({ project: ids.one, sort: "manual" });
+    expect(parseTaskFilters({ project: ids.one, sort: "title_asc" })).toMatchObject({ sort: "title_asc" });
+  });
+
   it("treats only non-sort facets as restrictive filters", () => {
     expect(hasActiveTaskFilters(defaultFilters())).toBe(false);
     expect(hasActiveTaskFilters({ ...defaultFilters(), sort: "title_asc" })).toBe(false);

@@ -99,7 +99,7 @@ export function parseTaskFilters(params: Record<string, string | string[] | unde
   const due = value("due");
   const project = value("project");
   const safeProject = project === "none" || isUuid(project) ? project : "";
-  const sort = legacySort[rawSort] ?? (allowedSorts.includes(rawSort as TaskSort) ? rawSort as TaskSort : "due_soon");
+  const sort = legacySort[rawSort] ?? (allowedSorts.includes(rawSort as TaskSort) ? rawSort as TaskSort : safeProject ? "manual" : "due_soon");
   return {
     q: value("q").trim().slice(0, 120),
     project: safeProject,
