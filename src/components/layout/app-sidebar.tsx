@@ -21,9 +21,10 @@ type AppSidebarProps = {
   workspace: Pick<Workspace, "id" | "name" | "slug"> | null;
   projects: Array<{ id: string; name: string }>;
   projectsLoadError: boolean;
+  canManageProjects: boolean;
 };
 
-export function AppSidebar({ persona, workspace, projects, projectsLoadError }: AppSidebarProps) {
+export function AppSidebar({ persona, workspace, projects, projectsLoadError, canManageProjects }: AppSidebarProps) {
   const { state, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -53,7 +54,7 @@ export function AppSidebar({ persona, workspace, projects, projectsLoadError }: 
       <SidebarContent className="gap-0 px-5 pt-1">
         <SidebarNav />
         <SidebarSeparator className="mx-0 my-[18px] bg-border-soft" />
-        <SidebarProjects projects={projects} loadError={projectsLoadError} />
+        <SidebarProjects projects={projects} loadError={projectsLoadError} canManageProjects={canManageProjects} />
       </SidebarContent>
 
       <SidebarFooter />

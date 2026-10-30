@@ -18,14 +18,15 @@ type AppShellProps = {
   workspace: Pick<Workspace, "id" | "name" | "slug"> | null;
   projects: Array<{ id: string; name: string }>;
   projectsLoadError: boolean;
+  canManageProjects: boolean;
   sidebarDefaultOpen: boolean;
 };
 
-export function AppShell({ children, email, name, persona, workspace, projects, projectsLoadError, sidebarDefaultOpen }: AppShellProps) {
+export function AppShell({ children, email, name, persona, workspace, projects, projectsLoadError, canManageProjects, sidebarDefaultOpen }: AppShellProps) {
   return (
     <SidebarProvider defaultOpen={sidebarDefaultOpen} className="amora-app-shell" style={{ "--sidebar-width": "clamp(268px, 20.5vw, 338px)" } as CSSProperties}>
       <TooltipProvider>
-        <AppSidebar persona={persona} workspace={workspace} projects={projects} projectsLoadError={projectsLoadError} />
+        <AppSidebar persona={persona} workspace={workspace} projects={projects} projectsLoadError={projectsLoadError} canManageProjects={canManageProjects} />
         <SidebarInset className="min-h-screen bg-app-background">
           <AppTopbar email={email} name={name} />
           {children}

@@ -30,16 +30,21 @@ async function AuthenticatedApp({ children }: { children: ReactNode }) {
     redirect(profile.onboarding_state === "channels" ? "/onboarding/canais" : "/onboarding");
   }
 
-  const { data: workspace } = profile.primary_workspace_id
-    ? await auth.supabase
-        .from("workspaces")
-        .select("id, name, slug")
-        .eq("id", profile.primary_workspace_id)
-        .maybeSingle()
-    : { data: null };
-  const { data: projects, error: projectsError } = workspace
-    ? await auth.supabase.from("projects").select("id, name").eq("workspace_id", workspace.id).order("name")
-    : { data: [] };
+  const workspaceId = profile.primary_workspace_id;
+  const [workspaceResult, membershipResult, projectsResult] = await Promise.all([
+    workspaceId
+      ? auth.supabase.from("workspaces").select("id, name, slug").eq("id", workspaceId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    workspaceId
+      ? auth.supabase.from("workspace_members").select("role").eq("workspace_id", workspaceId).eq("user_id", auth.user.id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    workspaceId
+      ? auth.supabase.from("projects").select("id, name").eq("workspace_id", workspaceId).order("name")
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  const workspace = workspaceResult.data;
+  const projects = projectsResult.data;
+  const canManageProjects = membershipResult.data?.role === "owner" || membershipResult.data?.role === "admin";
 
   return (
     <AppShell
@@ -48,7 +53,8 @@ async function AuthenticatedApp({ children }: { children: ReactNode }) {
       persona={profile.persona}
       workspace={workspace}
       projects={projects ?? []}
-      projectsLoadError={Boolean(projectsError)}
+      projectsLoadError={Boolean(projectsResult.error)}
+      canManageProjects={canManageProjects}
       sidebarDefaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}
     >
       {children}

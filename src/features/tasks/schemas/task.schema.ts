@@ -68,6 +68,7 @@ export const updateChecklistItemSchema = z.object({
   isCompleted: z.boolean().optional(),
 }).refine((value) => value.title !== undefined || value.isCompleted !== undefined, "Informe uma alteração para o item.");
 export const taskCompletionSchema = z.object({ id: z.uuid(), completed: z.boolean() });
+export const projectIdSchema = z.object({ id: z.uuid() });
 export const moveTaskSchema = z.object({ id: z.uuid(), projectId: z.union([z.literal(""), z.uuid()]) });
 export const reorderTaskGroupSchema = z.object({
   groupKey: z.enum(["today", "overdue", "completed", "upcoming", "unscheduled", "other"]),

@@ -6,6 +6,7 @@ import {
   createTaskSchema,
   duplicateTaskSchema,
   moveTaskSchema,
+  projectIdSchema,
   reorderTaskGroupSchema,
   taskCompletionSchema,
   taskIdSchema,
@@ -212,4 +213,24 @@ export async function createProject(input: unknown): Promise<ActionResult<{ proj
     .single();
   if (error) return { error: "Não foi possível criar o projeto. Verifique se já existe um projeto com esse nome." };
   return { success: true, project };
+}
+
+export async function deleteProject(input: unknown): Promise<ActionResult> {
+  const parsed = projectIdSchema.safeParse(input);
+  if (!parsed.success) return { error: "Projeto inválido." };
+  const access = await getWorkspaceAccess();
+  if (!access) return { error: "Sua sessão ou espaço de trabalho não está disponível." };
+  if (access.role !== "owner" && access.role !== "admin") {
+    return { error: "Somente pessoas administradoras podem excluir projetos." };
+  }
+
+  const { data: project, error } = await access.supabase.from("projects")
+    .delete()
+    .eq("id", parsed.data.id)
+    .eq("workspace_id", access.workspaceId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: "Não foi possível excluir o projeto. Tente novamente." };
+  if (!project) return { error: "Projeto não encontrado neste workspace." };
+  return { success: true };
 }
