@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Flag, Folder, GripVertical, ListChecks } from "lucide-react";
+import { CalendarDays, Flag, Folder, ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { TaskRowActions, type TaskAction, type TaskActionResult } from "@/features/tasks/components/task-row-actions";
@@ -46,13 +46,25 @@ export function KanbanTaskCard({ task, projectName, labels, checklistTotal, chec
     <Card
       role="group"
       aria-label={`Tarefa: ${task.title}`}
+      aria-roledescription={!archived ? "cartão arrastável" : undefined}
+      draggable={!archived && !pending}
       data-selected={selected || undefined}
+      onDragStart={(event) => {
+        if (archived || pending) {
+          event.preventDefault();
+          return;
+        }
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", task.id);
+        onDragStart?.(task.id);
+      }}
+      onDragEnd={() => onDragEnd?.()}
       onClick={(event) => {
         const opener = event.currentTarget.querySelector<HTMLButtonElement>(".amora-kanban-card-open");
         opener?.focus({ preventScroll: true });
         onOpen(task, opener);
       }}
-      className={`amora-kanban-card group relative block cursor-pointer gap-0 overflow-visible rounded-[11px] border border-border-soft bg-card p-3 shadow-[0_1px_3px_rgba(24,28,45,0.035)] ring-0 transition-[border-color,box-shadow,background-color,opacity] duration-150 ease-out hover:border-primary/35 hover:bg-hover hover:shadow-[0_3px_12px_rgba(0,0,0,0.05)] active:bg-hover motion-reduce:transition-none ${selected ? "border-primary/75" : ""} ${dragging ? "opacity-45" : ""}`}
+      className={`amora-kanban-card group relative block gap-0 overflow-visible rounded-[11px] border border-border-soft bg-card p-3 shadow-[0_1px_3px_rgba(24,28,45,0.035)] ring-0 transition-[border-color,box-shadow,background-color,opacity] duration-150 ease-out hover:border-primary/35 hover:bg-hover hover:shadow-[0_3px_12px_rgba(0,0,0,0.05)] active:bg-hover motion-reduce:transition-none ${!archived && !pending ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${selected ? "border-primary/75" : ""} ${dragging ? "opacity-45" : ""}`}
     >
       <div className="flex min-w-0 items-start gap-1">
         <button
@@ -67,22 +79,6 @@ export function KanbanTaskCard({ task, projectName, labels, checklistTotal, chec
         >
           {task.title}
         </button>
-        {!archived && <button
-          type="button"
-          draggable={!pending}
-          disabled={pending}
-          aria-label={`Arrastar tarefa ${task.title} para outra etapa`}
-          title="Arraste para outra etapa"
-          onClick={(event) => event.stopPropagation()}
-          onDragStart={(event) => {
-            event.stopPropagation();
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", task.id);
-            onDragStart?.(task.id);
-          }}
-          onDragEnd={(event) => { event.stopPropagation(); onDragEnd?.(); }}
-          className="inline-flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-text-faint opacity-45 hover:bg-muted hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring active:cursor-grabbing disabled:cursor-wait disabled:opacity-50"
-        ><GripVertical aria-hidden="true" className="size-4" /></button>}
         <div className="-mr-1 -mt-1 shrink-0" onClick={(event) => event.stopPropagation()}>
           <TaskRowActions task={task} projects={projects} archived={archived} onOpen={onOpen} onAction={onAction} onMoveStatus={onMoveStatus ? (status) => onMoveStatus(task, status) : undefined} statusChangePending={pending} />
         </div>

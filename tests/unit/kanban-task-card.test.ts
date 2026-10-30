@@ -52,6 +52,21 @@ function renderCard(overrides: Partial<Parameters<typeof KanbanTaskCard>[0]> = {
 }
 
 describe("KanbanTaskCard", () => {
+  it("permite iniciar o arraste em todo o cartão ativo", () => {
+    const markup = renderCard();
+
+    expect(markup).toContain('draggable="true"');
+    expect(markup).toContain('aria-roledescription="cartão arrastável"');
+    expect(markup).not.toContain("Arrastar tarefa");
+  });
+
+  it("mantém cartões arquivados fora do arraste", () => {
+    const markup = renderCard({ archived: true });
+
+    expect(markup).toContain('draggable="false"');
+    expect(markup).not.toContain("cartão arrastável");
+  });
+
   it("apresenta dados carregados, resumo de etiquetas e progresso real do checklist", () => {
     const markup = renderCard();
 
