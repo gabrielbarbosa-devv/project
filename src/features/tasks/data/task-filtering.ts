@@ -64,6 +64,19 @@ export function sortTasks(tasks: Task[], sort: TaskSort) {
   });
 }
 
+/** Replace or remove a task without sorting the full list when its sort keys have not changed. */
+export function replaceTaskInOrder(tasks: Task[], updatedTask: Task, include: boolean, fallbackIndex: number) {
+  const currentIndex = tasks.findIndex((task) => task.id === updatedTask.id);
+  const next = tasks.filter((task) => task.id !== updatedTask.id);
+  if (!include) return next;
+
+  const insertionIndex = currentIndex >= 0
+    ? currentIndex
+    : Math.min(Math.max(fallbackIndex, 0), next.length);
+  next.splice(insertionIndex, 0, updatedTask);
+  return next;
+}
+
 function compareNullable(a: string | number | null, b: string | number | null, ascending: boolean) {
   if (a === null && b === null) return 0;
   if (a === null) return 1;

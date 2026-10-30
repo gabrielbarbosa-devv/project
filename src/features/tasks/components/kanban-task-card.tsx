@@ -21,7 +21,6 @@ type Props = {
   selected: boolean;
   projects: Project[];
   pending?: boolean;
-  dragging?: boolean;
   onOpen: (task: Task, opener?: HTMLElement | null) => void;
   onAction: (action: TaskAction, task: Task, projectId?: string, requestId?: string) => Promise<TaskActionResult>;
   onMoveStatus?: (task: Task, status: TaskStatus) => Promise<void>;
@@ -30,7 +29,7 @@ type Props = {
 };
 
 /** Detailed Kanban card. All task, project, label and checklist data comes from the workspace query. */
-export function KanbanTaskCard({ task, projectName, labels, checklistTotal, checklistCompleted, today, archived, selected, projects, pending = false, dragging = false, onOpen, onAction, onMoveStatus, onDragStart, onDragEnd }: Props) {
+export function KanbanTaskCard({ task, projectName, labels, checklistTotal, checklistCompleted, today, archived, selected, projects, pending = false, onOpen, onAction, onMoveStatus, onDragStart, onDragEnd }: Props) {
   const completed = task.status === "completed";
   const priority = getTaskPriorityPresentation(task.priority);
   // The deadline is the most relevant compact date; planned date remains in the existing details sheet.
@@ -48,23 +47,28 @@ export function KanbanTaskCard({ task, projectName, labels, checklistTotal, chec
       aria-label={`Tarefa: ${task.title}`}
       aria-roledescription={!archived ? "cartão arrastável" : undefined}
       draggable={!archived && !pending}
+      data-task-card-id={task.id}
       data-selected={selected || undefined}
       onDragStart={(event) => {
         if (archived || pending) {
           event.preventDefault();
           return;
         }
+        event.currentTarget.setAttribute("data-dragging", "true");
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", task.id);
         onDragStart?.(task.id);
       }}
-      onDragEnd={() => onDragEnd?.()}
+      onDragEnd={(event) => {
+        event.currentTarget.removeAttribute("data-dragging");
+        onDragEnd?.();
+      }}
       onClick={(event) => {
         const opener = event.currentTarget.querySelector<HTMLButtonElement>(".amora-kanban-card-open");
         opener?.focus({ preventScroll: true });
         onOpen(task, opener);
       }}
-      className={`amora-kanban-card group relative block gap-0 overflow-visible rounded-[11px] border border-border-soft bg-card p-3 shadow-[0_1px_3px_rgba(24,28,45,0.035)] ring-0 transition-[border-color,box-shadow,background-color,opacity] duration-150 ease-out hover:border-primary/35 hover:bg-hover hover:shadow-[0_3px_12px_rgba(0,0,0,0.05)] active:bg-hover motion-reduce:transition-none ${!archived && !pending ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${selected ? "border-primary/75" : ""} ${dragging ? "opacity-45" : ""}`}
+      className={`amora-kanban-card group relative block gap-0 overflow-visible rounded-[11px] border border-border-soft bg-card p-3 shadow-[0_1px_3px_rgba(24,28,45,0.035)] ring-0 transition-[border-color,box-shadow,background-color,opacity] duration-150 ease-out hover:border-primary/35 hover:bg-hover hover:shadow-[0_3px_12px_rgba(0,0,0,0.05)] active:bg-hover motion-reduce:transition-none data-[dragging=true]:opacity-45 ${!archived && !pending ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${selected ? "border-primary/75" : ""}`}
     >
       <div className="flex min-w-0 items-start gap-1">
         <button

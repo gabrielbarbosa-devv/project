@@ -6,6 +6,7 @@ import {
   hasActiveTaskFilters,
   matchesTaskFilters,
   parseTaskFilters,
+  replaceTaskInOrder,
   sortTasks,
 } from "@/features/tasks/data/task-filtering";
 import type { Task, TaskFilters } from "@/features/tasks/data/queries";
@@ -149,6 +150,26 @@ describe("task filter matching", () => {
     expect(matchesTaskFilters(task({ project_id: ids.three }), { ...defaultFilters(), project: "none" }, "2026-10-25")).toBe(false);
     expect(matchesTaskFilters(archived, { ...defaultFilters(), archived: true }, "2026-10-25")).toBe(true);
     expect(matchesTaskFilters(archived, defaultFilters(), "2026-10-25")).toBe(false);
+  });
+});
+
+describe("atualização otimista da ordem do Kanban", () => {
+  it("preserva a ordem atual sem ordenar a lista outra vez", () => {
+    const first = task({ id: ids.one });
+    const second = task({ id: ids.two });
+    const third = task({ id: ids.three });
+    const moved = { ...second, status: "in_progress" } as Task;
+
+    expect(replaceTaskInOrder([first, second, third], moved, true, 1).map((item) => item.id)).toEqual([ids.one, ids.two, ids.three]);
+  });
+
+  it("remove tarefas que deixam os filtros e as reinsere no lugar original ao reverter", () => {
+    const first = task({ id: ids.one });
+    const second = task({ id: ids.two });
+    const third = task({ id: ids.three });
+
+    expect(replaceTaskInOrder([first, second, third], second, false, 1).map((item) => item.id)).toEqual([ids.one, ids.three]);
+    expect(replaceTaskInOrder([first, third], second, true, 1).map((item) => item.id)).toEqual([ids.one, ids.two, ids.three]);
   });
 });
 

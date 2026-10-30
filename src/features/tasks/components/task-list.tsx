@@ -19,7 +19,7 @@ import { TaskLoadErrorPanel } from "@/features/tasks/components/task-load-error"
 import { archiveTask, deleteTask, duplicateTask, moveTask, moveTaskStatus, reorderTaskGroup, restoreTask, setTaskCompletion } from "@/features/tasks/actions/tasks";
 import { formatTaskDate, getTaskPriorityPresentation, groupTasks } from "@/features/tasks/data/presentation";
 import { withKanbanChecklistProgress } from "@/features/tasks/data/kanban-progress";
-import { canReorderTasks, hasActiveTaskFilters, matchesTaskFilters, sortTasks } from "@/features/tasks/data/task-filtering";
+import { canReorderTasks, hasActiveTaskFilters, matchesTaskFilters, replaceTaskInOrder, sortTasks } from "@/features/tasks/data/task-filtering";
 import type { TaskLoadIssue } from "@/features/tasks/data/kanban-presentation";
 import type { Project, Task, TaskFilters, TaskKanbanMetadata, TaskLabel, TaskStatus } from "@/features/tasks/data/queries";
 
@@ -238,29 +238,36 @@ export function TaskList({ workspaceName, projects: initialProjects, labels, tas
     const completedAt = status === "completed" ? task.completed_at ?? new Date().toISOString() : null;
     const optimisticTask: Task = { ...task, status, completed_at: completedAt };
     const labelIds = currentKanbanMetadata[task.id]?.labelIds ?? [];
+    const originalIndex = tasks.findIndex((item) => item.id === task.id);
     pendingTaskIdsRef.current.add(task.id);
     setPendingTaskIds(new Set(pendingTaskIdsRef.current));
-    updateTasks((current) => sortTasks([
-      ...current.filter((item) => item.id !== task.id),
-      ...(matchesTaskFilters(optimisticTask, filters, today, labelIds) ? [optimisticTask] : []),
-    ], filters.sort));
+    updateTasks((current) => replaceTaskInOrder(
+      current,
+      optimisticTask,
+      matchesTaskFilters(optimisticTask, filters, today, labelIds),
+      originalIndex,
+    ));
     setDetailsTask((current) => current?.id === task.id ? optimisticTask : current);
 
     try {
       const result = await moveTaskStatus({ id: task.id, status });
       if (result.error || !result.task) throw new Error(result.error ?? "Não foi possível mover a tarefa.");
       const savedTask = result.task;
-      updateTasks((current) => sortTasks([
-        ...current.filter((item) => item.id !== task.id),
-        ...(matchesTaskFilters(savedTask, filters, today, labelIds) ? [savedTask] : []),
-      ], filters.sort));
+      updateTasks((current) => replaceTaskInOrder(
+        current,
+        savedTask,
+        matchesTaskFilters(savedTask, filters, today, labelIds),
+        originalIndex,
+      ));
       setDetailsTask((current) => current?.id === task.id ? savedTask : current);
       toast.success("Tarefa movida de etapa.");
     } catch (error) {
-      updateTasks((current) => sortTasks([
-        ...current.filter((item) => item.id !== task.id),
-        ...(matchesTaskFilters(task, filters, today, labelIds) ? [task] : []),
-      ], filters.sort));
+      updateTasks((current) => replaceTaskInOrder(
+        current,
+        task,
+        matchesTaskFilters(task, filters, today, labelIds),
+        originalIndex,
+      ));
       setDetailsTask((current) => current?.id === task.id ? task : current);
       toast.error(error instanceof Error ? error.message : "Não foi possível mover a tarefa. Tente novamente.");
     } finally {

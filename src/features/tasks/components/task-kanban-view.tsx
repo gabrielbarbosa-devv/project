@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef } from "react";
 import { AlertTriangle, Plus, SearchX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,14 +38,26 @@ type Props = {
 };
 
 export function TaskKanbanView({ tasks, projects, labels, metadata, today, archived, filtered, selectedTaskId, pendingTaskIds, onOpen, onAction, onMoveStatus, onCreate, onClearFilters }: Props) {
-  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<TaskStatus | null>(null);
-  const columns = groupKanbanTasks(tasks);
-  const projectNames = new Map(projects.map((project) => [project.id, project.name]));
-  const labelNames = new Map(labels.map((label) => [label.id, label]));
+  const boardRef = useRef<HTMLDivElement>(null);
+  const draggingTaskIdRef = useRef<string | null>(null);
+  const dropTargetRef = useRef<TaskStatus | null>(null);
+  const columns = useMemo(() => groupKanbanTasks(tasks), [tasks]);
+  const projectNames = useMemo(() => new Map(projects.map((project) => [project.id, project.name])), [projects]);
+  const labelNames = useMemo(() => new Map(labels.map((label) => [label.id, label])), [labels]);
   const emptyState = getKanbanEmptyState(tasks.length, filtered);
   const workspaceEmpty = emptyState === "workspace";
-  const unmappedTasks = getUnmappedKanbanTasks(tasks, columns);
+  const unmappedTasks = useMemo(() => getUnmappedKanbanTasks(tasks, columns), [tasks, columns]);
+
+  function setDropTarget(status: TaskStatus | null) {
+    if (dropTargetRef.current === status) return;
+    if (dropTargetRef.current) {
+      boardRef.current?.querySelector<HTMLElement>(`[data-kanban-column="${dropTargetRef.current}"]`)?.removeAttribute("data-drop-target");
+    }
+    dropTargetRef.current = status;
+    if (status) {
+      boardRef.current?.querySelector<HTMLElement>(`[data-kanban-column="${status}"]`)?.setAttribute("data-drop-target", "true");
+    }
+  }
 
   if (emptyState === "filtered") {
     return (
@@ -93,6 +105,7 @@ export function TaskKanbanView({ tasks, projects, labels, metadata, today, archi
         </div>
       )}
       <div
+        ref={boardRef}
         role="region"
         tabIndex={0}
         aria-label="Quadro Kanban de tarefas. Role horizontalmente para navegar entre as colunas."
@@ -103,27 +116,26 @@ export function TaskKanbanView({ tasks, projects, labels, metadata, today, archi
             key={column.key}
             aria-labelledby={`kanban-column-${column.key}`}
             data-kanban-column={column.key}
-            data-drop-target={dropTarget === column.key || undefined}
+            className="amora-kanban-column flex h-[min(640px,calc(100dvh-300px))] min-h-[420px] min-w-0 flex-col overflow-hidden rounded-[13px] border border-border-soft bg-muted transition-[border-color,box-shadow,background-color] motion-reduce:transition-none data-[drop-target=true]:border-primary/65 data-[drop-target=true]:bg-selection-soft/45 data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-primary/20"
             onDragOver={(event) => {
-              if (archived || !draggingTaskId) return;
+              if (archived || !draggingTaskIdRef.current) return;
               event.preventDefault();
               event.dataTransfer.dropEffect = "move";
-              if (dropTarget !== column.key) setDropTarget(column.key);
+              setDropTarget(column.key);
             }}
             onDragLeave={(event) => {
-              if (event.currentTarget === event.target && dropTarget === column.key) setDropTarget(null);
+              if (event.currentTarget === event.target && dropTargetRef.current === column.key) setDropTarget(null);
             }}
             onDrop={(event) => {
-              if (archived || !draggingTaskId) return;
+              if (archived || !draggingTaskIdRef.current) return;
               event.preventDefault();
               event.stopPropagation();
-              const taskId = event.dataTransfer.getData("text/plain") || draggingTaskId;
+              const taskId = event.dataTransfer.getData("text/plain") || draggingTaskIdRef.current;
               const task = tasks.find((item) => item.id === taskId);
               if (task && task.status !== column.key && !pendingTaskIds.has(task.id)) void onMoveStatus(task, column.key);
-              setDraggingTaskId(null);
+              draggingTaskIdRef.current = null;
               setDropTarget(null);
             }}
-            className={`flex h-[min(640px,calc(100dvh-300px))] min-h-[420px] min-w-0 flex-col overflow-hidden rounded-[13px] border bg-muted transition-[border-color,box-shadow,background-color] motion-reduce:transition-none ${dropTarget === column.key ? "border-primary/65 bg-selection-soft/45 ring-2 ring-primary/20" : "border-border-soft"}`}
           >
             <header className="flex h-12 shrink-0 items-center gap-2 px-3">
               <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${columnTone[column.key]}`} />
@@ -152,12 +164,14 @@ export function TaskKanbanView({ tasks, projects, labels, metadata, today, archi
                   selected={selectedTaskId === task.id}
                   projects={projects}
                   pending={pendingTaskIds.has(task.id)}
-                  dragging={draggingTaskId === task.id}
                   onOpen={onOpen}
                   onAction={onAction}
                   onMoveStatus={onMoveStatus}
-                  onDragStart={setDraggingTaskId}
-                  onDragEnd={() => { setDraggingTaskId(null); setDropTarget(null); }}
+                  onDragStart={(taskId) => { draggingTaskIdRef.current = taskId; }}
+                  onDragEnd={() => {
+                    draggingTaskIdRef.current = null;
+                    setDropTarget(null);
+                  }}
                 />
               )) : (
                 <KanbanEmptyColumn
