@@ -16,12 +16,12 @@ import { TaskRowActions, type TaskAction, type TaskActionResult } from "@/featur
 import { TaskToolbar } from "@/features/tasks/components/task-toolbar";
 import { TaskKanbanView } from "@/features/tasks/components/task-kanban-view";
 import { TaskLoadErrorPanel } from "@/features/tasks/components/task-load-error";
-import { archiveTask, deleteTask, duplicateTask, moveTask, reorderTaskGroup, restoreTask, setTaskCompletion } from "@/features/tasks/actions/tasks";
+import { archiveTask, deleteTask, duplicateTask, moveTask, moveTaskStatus, reorderTaskGroup, restoreTask, setTaskCompletion } from "@/features/tasks/actions/tasks";
 import { formatTaskDate, getTaskPriorityPresentation, groupTasks } from "@/features/tasks/data/presentation";
 import { withKanbanChecklistProgress } from "@/features/tasks/data/kanban-progress";
 import { canReorderTasks, hasActiveTaskFilters, matchesTaskFilters, sortTasks } from "@/features/tasks/data/task-filtering";
 import type { TaskLoadIssue } from "@/features/tasks/data/kanban-presentation";
-import type { Project, Task, TaskFilters, TaskKanbanMetadata, TaskLabel } from "@/features/tasks/data/queries";
+import type { Project, Task, TaskFilters, TaskKanbanMetadata, TaskLabel, TaskStatus } from "@/features/tasks/data/queries";
 
 type Props = {
   workspaceName: string;
@@ -232,6 +232,43 @@ export function TaskList({ workspaceName, projects: initialProjects, labels, tas
     }
   }
 
+  async function moveKanbanTask(task: Task, status: TaskStatus) {
+    if (filters.archived || status === task.status || pendingTaskIdsRef.current.has(task.id)) return;
+
+    const completedAt = status === "completed" ? task.completed_at ?? new Date().toISOString() : null;
+    const optimisticTask: Task = { ...task, status, completed_at: completedAt };
+    const labelIds = currentKanbanMetadata[task.id]?.labelIds ?? [];
+    pendingTaskIdsRef.current.add(task.id);
+    setPendingTaskIds(new Set(pendingTaskIdsRef.current));
+    updateTasks((current) => sortTasks([
+      ...current.filter((item) => item.id !== task.id),
+      ...(matchesTaskFilters(optimisticTask, filters, today, labelIds) ? [optimisticTask] : []),
+    ], filters.sort));
+    setDetailsTask((current) => current?.id === task.id ? optimisticTask : current);
+
+    try {
+      const result = await moveTaskStatus({ id: task.id, status });
+      if (result.error || !result.task) throw new Error(result.error ?? "Não foi possível mover a tarefa.");
+      const savedTask = result.task;
+      updateTasks((current) => sortTasks([
+        ...current.filter((item) => item.id !== task.id),
+        ...(matchesTaskFilters(savedTask, filters, today, labelIds) ? [savedTask] : []),
+      ], filters.sort));
+      setDetailsTask((current) => current?.id === task.id ? savedTask : current);
+      toast.success("Tarefa movida de etapa.");
+    } catch (error) {
+      updateTasks((current) => sortTasks([
+        ...current.filter((item) => item.id !== task.id),
+        ...(matchesTaskFilters(task, filters, today, labelIds) ? [task] : []),
+      ], filters.sort));
+      setDetailsTask((current) => current?.id === task.id ? task : current);
+      toast.error(error instanceof Error ? error.message : "Não foi possível mover a tarefa. Tente novamente.");
+    } finally {
+      pendingTaskIdsRef.current.delete(task.id);
+      setPendingTaskIds(new Set(pendingTaskIdsRef.current));
+    }
+  }
+
   function handleTaskSaved(task: Task) {
     if (filters.labelIds.length || view === "kanban") router.refresh();
     else updateTasks((current) => sortTasks([
@@ -385,8 +422,10 @@ export function TaskList({ workspaceName, projects: initialProjects, labels, tas
             archived={filters.archived}
             filtered={filtered}
             selectedTaskId={detailsTask?.id ?? null}
+            pendingTaskIds={pendingTaskIds}
             onOpen={openTaskDetails}
             onAction={performAction}
+            onMoveStatus={moveKanbanTask}
             onCreate={() => setCreateOpen(true)}
             onClearFilters={clearFilters}
           />

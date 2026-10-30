@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AlertTriangle, Plus, SearchX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { KanbanEmptyColumn } from "@/features/tasks/components/kanban-empty-colu
 import type { TaskAction, TaskActionResult } from "@/features/tasks/components/task-row-actions";
 import { groupKanbanTasks } from "@/features/tasks/data/presentation";
 import { getKanbanEmptyState, getUnmappedKanbanTasks } from "@/features/tasks/data/kanban-presentation";
-import type { Project, Task, TaskKanbanMetadata, TaskLabel } from "@/features/tasks/data/queries";
+import type { Project, Task, TaskKanbanMetadata, TaskLabel, TaskStatus } from "@/features/tasks/data/queries";
 
 const columnTone = {
   pending: "amora-kanban-status-pending",
@@ -28,13 +29,17 @@ type Props = {
   archived: boolean;
   filtered: boolean;
   selectedTaskId: string | null;
+  pendingTaskIds: ReadonlySet<string>;
   onOpen: (task: Task, opener?: HTMLElement | null) => void;
   onAction: (action: TaskAction, task: Task, projectId?: string, requestId?: string) => Promise<TaskActionResult>;
+  onMoveStatus: (task: Task, status: TaskStatus) => Promise<void>;
   onCreate: () => void;
   onClearFilters: () => void;
 };
 
-export function TaskKanbanView({ tasks, projects, labels, metadata, today, archived, filtered, selectedTaskId, onOpen, onAction, onCreate, onClearFilters }: Props) {
+export function TaskKanbanView({ tasks, projects, labels, metadata, today, archived, filtered, selectedTaskId, pendingTaskIds, onOpen, onAction, onMoveStatus, onCreate, onClearFilters }: Props) {
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<TaskStatus | null>(null);
   const columns = groupKanbanTasks(tasks);
   const projectNames = new Map(projects.map((project) => [project.id, project.name]));
   const labelNames = new Map(labels.map((label) => [label.id, label]));
@@ -97,7 +102,28 @@ export function TaskKanbanView({ tasks, projects, labels, metadata, today, archi
           <section
             key={column.key}
             aria-labelledby={`kanban-column-${column.key}`}
-            className="flex h-[min(640px,calc(100dvh-300px))] min-h-[420px] min-w-0 flex-col overflow-hidden rounded-[13px] border border-border-soft bg-muted"
+            data-kanban-column={column.key}
+            data-drop-target={dropTarget === column.key || undefined}
+            onDragOver={(event) => {
+              if (archived || !draggingTaskId) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              if (dropTarget !== column.key) setDropTarget(column.key);
+            }}
+            onDragLeave={(event) => {
+              if (event.currentTarget === event.target && dropTarget === column.key) setDropTarget(null);
+            }}
+            onDrop={(event) => {
+              if (archived || !draggingTaskId) return;
+              event.preventDefault();
+              event.stopPropagation();
+              const taskId = event.dataTransfer.getData("text/plain") || draggingTaskId;
+              const task = tasks.find((item) => item.id === taskId);
+              if (task && task.status !== column.key && !pendingTaskIds.has(task.id)) void onMoveStatus(task, column.key);
+              setDraggingTaskId(null);
+              setDropTarget(null);
+            }}
+            className={`flex h-[min(640px,calc(100dvh-300px))] min-h-[420px] min-w-0 flex-col overflow-hidden rounded-[13px] border bg-muted transition-[border-color,box-shadow,background-color] motion-reduce:transition-none ${dropTarget === column.key ? "border-primary/65 bg-selection-soft/45 ring-2 ring-primary/20" : "border-border-soft"}`}
           >
             <header className="flex h-12 shrink-0 items-center gap-2 px-3">
               <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${columnTone[column.key]}`} />
@@ -125,8 +151,13 @@ export function TaskKanbanView({ tasks, projects, labels, metadata, today, archi
                   archived={archived}
                   selected={selectedTaskId === task.id}
                   projects={projects}
+                  pending={pendingTaskIds.has(task.id)}
+                  dragging={draggingTaskId === task.id}
                   onOpen={onOpen}
                   onAction={onAction}
+                  onMoveStatus={onMoveStatus}
+                  onDragStart={setDraggingTaskId}
+                  onDragEnd={() => { setDraggingTaskId(null); setDropTarget(null); }}
                 />
               )) : (
                 <KanbanEmptyColumn

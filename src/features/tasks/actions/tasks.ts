@@ -10,6 +10,7 @@ import {
   reorderTaskGroupSchema,
   taskCompletionSchema,
   taskIdSchema,
+  taskStatusChangeSchema,
   updateTaskSchema,
 } from "@/features/tasks/schemas/task.schema";
 import type { Task } from "@/features/tasks/data/queries";
@@ -112,6 +113,23 @@ export async function setTaskCompletion(input: unknown): Promise<ActionResult> {
     .maybeSingle();
   if (error || !data) return { error: "Não foi possível atualizar a tarefa. Tente novamente." };
   return { success: true };
+}
+
+export async function moveTaskStatus(input: unknown): Promise<ActionResult<{ task?: Task }>> {
+  const parsed = taskStatusChangeSchema.safeParse(input);
+  if (!parsed.success) return { error: "A etapa selecionada não é válida." };
+  const access = await getWorkspaceAccess();
+  if (!access) return { error: "Sua sessão ou espaço de trabalho não está disponível." };
+  const completedAt = parsed.data.status === "completed" ? new Date().toISOString() : null;
+  const { data, error } = await access.supabase.from("tasks")
+    .update({ status: parsed.data.status, completed_at: completedAt })
+    .eq("id", parsed.data.id)
+    .eq("workspace_id", access.workspaceId)
+    .is("archived_at", null)
+    .select("*")
+    .maybeSingle();
+  if (error || !data) return { error: "Não foi possível mover a tarefa. Atualize o quadro e tente novamente." };
+  return { success: true, task: data as Task };
 }
 
 export async function duplicateTask(input: unknown): Promise<ActionResult<{ task?: Task }>> {

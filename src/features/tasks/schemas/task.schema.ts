@@ -6,6 +6,7 @@ const dateField = z.string().refine(
 );
 
 export const taskPrioritySchema = z.enum(["low", "medium", "high"]);
+export const taskStatusSchema = z.enum(["pending", "in_progress", "completed", "paused"]);
 
 const taskFormFieldsSchema = z.object({
   title: z.string().trim().min(1, "Informe o título da tarefa.").max(160, "Use até 160 caracteres."),
@@ -40,7 +41,7 @@ export const createTaskSchema = withScheduleValidation(taskFormFieldsSchema.exte
 }));
 export const updateTaskSchema = withScheduleValidation(taskFormFieldsSchema.extend({
   id: z.uuid(),
-  status: z.enum(["pending", "completed"]),
+  status: taskStatusSchema,
   labelIds: z.array(z.uuid()).max(20),
   newLabelNames: z.array(z.string().trim().min(2, "Use pelo menos 2 caracteres.").max(40, "Use até 40 caracteres.")).max(20),
 }).superRefine((values, context) => {
@@ -68,6 +69,7 @@ export const updateChecklistItemSchema = z.object({
   isCompleted: z.boolean().optional(),
 }).refine((value) => value.title !== undefined || value.isCompleted !== undefined, "Informe uma alteração para o item.");
 export const taskCompletionSchema = z.object({ id: z.uuid(), completed: z.boolean() });
+export const taskStatusChangeSchema = z.object({ id: z.uuid(), status: taskStatusSchema });
 export const projectIdSchema = z.object({ id: z.uuid() });
 export const moveTaskSchema = z.object({ id: z.uuid(), projectId: z.union([z.literal(""), z.uuid()]) });
 export const reorderTaskGroupSchema = z.object({

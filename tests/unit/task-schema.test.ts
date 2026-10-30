@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createChecklistItemSchema, createTaskSchema, duplicateTaskSchema, reorderTaskGroupSchema, taskFormSchema, updateChecklistItemSchema, updateTaskSchema } from "@/features/tasks/schemas/task.schema";
+import { createChecklistItemSchema, createTaskSchema, duplicateTaskSchema, reorderTaskGroupSchema, taskFormSchema, taskStatusChangeSchema, updateChecklistItemSchema, updateTaskSchema } from "@/features/tasks/schemas/task.schema";
 
 const validForm = {
   title: "Preparar roteiro",
@@ -60,8 +60,19 @@ describe("task creation schema", () => {
       newLabelNames: [],
     };
     expect(updateTaskSchema.safeParse(validEdit).success).toBe(true);
-    expect(updateTaskSchema.safeParse({ ...validEdit, status: "in_progress" }).success).toBe(false);
+    expect(updateTaskSchema.safeParse({ ...validEdit, status: "in_progress" }).success).toBe(true);
+    expect(updateTaskSchema.safeParse({ ...validEdit, status: "paused" }).success).toBe(true);
+    expect(updateTaskSchema.safeParse({ ...validEdit, status: "unknown" }).success).toBe(false);
     expect(updateTaskSchema.safeParse({ ...validEdit, labelIds: [validEdit.id, validEdit.id] }).success).toBe(false);
+  });
+
+  it("accepts only valid status transitions for Kanban moves", () => {
+    const id = "71360d82-f90f-4625-b554-3c014a5da821";
+    for (const status of ["pending", "in_progress", "completed", "paused"]) {
+      expect(taskStatusChangeSchema.safeParse({ id, status }).success).toBe(true);
+    }
+    expect(taskStatusChangeSchema.safeParse({ id, status: "unknown" }).success).toBe(false);
+    expect(taskStatusChangeSchema.safeParse({ id: "not-a-uuid", status: "paused" }).success).toBe(false);
   });
 
   it("validates checklist create and update input without accepting empty updates", () => {

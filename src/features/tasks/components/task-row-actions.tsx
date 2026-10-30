@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Archive, Check, Copy, Ellipsis, FileText, FolderInput, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, Check, Columns3, Copy, Ellipsis, FileText, FolderInput, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -16,17 +16,26 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Project, Task } from "@/features/tasks/data/queries";
+import type { Project, Task, TaskStatus } from "@/features/tasks/data/queries";
+
+const taskStatuses: Array<{ value: TaskStatus; label: string }> = [
+  { value: "pending", label: "A fazer" },
+  { value: "in_progress", label: "Em andamento" },
+  { value: "completed", label: "Concluída" },
+  { value: "paused", label: "Pausada" },
+];
 
 export type TaskAction = "duplicate" | "archive" | "restore" | "delete" | "move";
 export type TaskActionResult = { error?: string; task?: Task };
 
-export function TaskRowActions({ task, projects, archived, onOpen, onAction }: {
+export function TaskRowActions({ task, projects, archived, onOpen, onAction, onMoveStatus, statusChangePending = false }: {
   task: Task;
   projects: Project[];
   archived: boolean;
   onOpen: (task: Task, opener?: HTMLElement | null) => void;
   onAction: (action: TaskAction, task: Task, projectId?: string, requestId?: string) => Promise<TaskActionResult>;
+  onMoveStatus?: (status: TaskStatus) => Promise<void>;
+  statusChangePending?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -96,6 +105,29 @@ export function TaskRowActions({ task, projects, archived, onOpen, onAction }: {
             <DropdownMenuItem className="h-[38px] gap-2.5 px-3 text-[13px] font-medium focus:bg-hover focus:text-foreground" onSelect={() => onOpen(task, menuTriggerRef.current)}>
               <Pencil aria-hidden="true" className="size-4" /> Renomear
             </DropdownMenuItem>
+          )}
+          {!archived && onMoveStatus && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger disabled={statusChangePending} className="h-[38px] gap-2.5 px-3 text-[13px] font-medium focus:bg-hover focus:text-foreground data-open:bg-hover data-open:text-foreground">
+                <Columns3 aria-hidden="true" className="size-4" /> Mover para etapa
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent sideOffset={6} alignOffset={-4} className="w-48 rounded-[11px] border border-border-soft bg-popover p-1.5 text-[13px] shadow-[0_8px_24px_rgba(15,23,42,0.10)] dark:shadow-[0_12px_28px_rgba(0,0,0,0.28)]">
+                  {taskStatuses.map((status) => (
+                    <DropdownMenuItem
+                      key={status.value}
+                      disabled={statusChangePending || task.status === status.value}
+                      className="h-[38px] gap-2.5 px-3 text-[13px] font-medium focus:bg-hover focus:text-foreground"
+                      onSelect={() => { setMenuOpen(false); void onMoveStatus(status.value); }}
+                    >
+                      <span className="size-2 rounded-full bg-text-faint" aria-hidden="true" />
+                      {status.label}
+                      {task.status === status.value && <Check aria-hidden="true" className="ml-auto size-4 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
           )}
           {!archived && (
             <DropdownMenuSub>

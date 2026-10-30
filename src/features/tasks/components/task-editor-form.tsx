@@ -30,7 +30,7 @@ import { SheetFooter } from "@/components/ui/sheet";
 import { createTask, updateTask } from "@/features/tasks/actions/tasks";
 import { taskFormSchema, type TaskFormValues } from "@/features/tasks/schemas/task.schema";
 import { taskLabelTone } from "@/features/tasks/data/task-label-presentation";
-import type { Project, Task, TaskLabel } from "@/features/tasks/data/queries";
+import type { Project, Task, TaskLabel, TaskStatus } from "@/features/tasks/data/queries";
 
 type Props = {
   task?: Task | null;
@@ -88,7 +88,7 @@ function displayDate(value: string) {
 
 export function TaskEditorForm({ task, projects, labels = [], assignedLabelIds = [], today, onCancel, onSaved, onDirtyChange, onPendingChange, onDelete, children }: Props) {
   const [values, setValues] = useState<TaskFormValues>(() => initialValues(task, today));
-  const [status, setStatus] = useState<"pending" | "completed">(task?.status === "completed" ? "completed" : "pending");
+  const [status, setStatus] = useState<TaskStatus>((task?.status as TaskStatus | undefined) ?? "pending");
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>(assignedLabelIds);
   const [newLabelNames, setNewLabelNames] = useState<string[]>([]);
   const [labelSearch, setLabelSearch] = useState("");
@@ -101,7 +101,7 @@ export function TaskEditorForm({ task, projects, labels = [], assignedLabelIds =
   const requestId = useRef<string | null>(null);
   const [baseline, setBaseline] = useState(() => ({
     values: initialValues(task, today),
-    status: task?.status === "completed" ? "completed" as const : "pending" as const,
+    status: (task?.status as TaskStatus | undefined) ?? "pending",
     labelIds: [...assignedLabelIds].sort(),
     newLabelNames: [] as string[],
   }));
@@ -200,11 +200,13 @@ export function TaskEditorForm({ task, projects, labels = [], assignedLabelIds =
     <form className={`grid min-h-0 gap-5 ${task ? "amora-task-details-form px-6 pb-0" : "px-7 pb-0"}`} onSubmit={submit} noValidate>
       {task && <Field className="gap-1.5">
         <FieldLabel htmlFor="task-status" className="text-xs font-medium text-text-soft">Status</FieldLabel>
-        <Select value={status} onValueChange={(value) => setStatus(value as "pending" | "completed")}>
+        <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
           <SelectTrigger id="task-status" data-task-control="status" className="h-10 w-fit min-w-36 rounded-[10px] border-input-border bg-background px-3 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="pending">Pendente</SelectItem>
+            <SelectItem value="in_progress">Em andamento</SelectItem>
             <SelectItem value="completed">Concluída</SelectItem>
+            <SelectItem value="paused">Pausada</SelectItem>
           </SelectContent>
         </Select>
       </Field>}

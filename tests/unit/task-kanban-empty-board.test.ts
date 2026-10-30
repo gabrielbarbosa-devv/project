@@ -35,8 +35,10 @@ function render(tasks: Task[], filtered = false) {
     archived: false,
     filtered,
     selectedTaskId: null,
+    pendingTaskIds: new Set<string>(),
     onOpen: () => {},
     onAction: async () => ({}),
+    onMoveStatus: async () => {},
     onCreate: () => {},
     onClearFilters: () => {},
   }));
@@ -67,7 +69,7 @@ describe("quadro Kanban completamente vazio", () => {
   });
 
   it("expõe tarefas reais com status que o Kanban ainda não mapeia", () => {
-    const unmatched = task({ id: "unmatched", title: "Revisar status legado", status: "in_progress" as unknown as Task["status"] });
+    const unmatched = task({ id: "unmatched", title: "Revisar status legado", status: "legacy_status" as unknown as Task["status"] });
     const markup = render([unmatched]);
 
     expect(markup).toContain('role="alert"');

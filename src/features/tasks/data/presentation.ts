@@ -17,9 +17,9 @@ export function getTaskPriorityPresentation(priority: string) {
 
 const kanbanColumns: Array<[KanbanColumnKey, string, (task: Task) => boolean]> = [
   ["pending", "A fazer", (task) => task.status === "pending"],
-  ["in_progress", "Em andamento", () => false],
+  ["in_progress", "Em andamento", (task) => task.status === "in_progress"],
   ["completed", "Concluídas", (task) => task.status === "completed"],
-  ["paused", "Pausadas", () => false],
+  ["paused", "Pausadas", (task) => task.status === "paused"],
 ];
 
 export function groupKanbanTasks(tasks: Task[]): KanbanColumn[] {

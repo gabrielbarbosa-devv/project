@@ -23,7 +23,9 @@ const priorityOptions = [
 
 const statusOptions = [
   { value: "pending", label: "Pendente" },
+  { value: "in_progress", label: "Em andamento" },
   { value: "completed", label: "Concluída" },
+  { value: "paused", label: "Pausada" },
 ] as const;
 
 const dueOptions = [

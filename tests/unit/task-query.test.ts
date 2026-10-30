@@ -72,7 +72,7 @@ describe("task filter URL state", () => {
       q: "  roteiro ",
       project: ids.one,
       priority: ["high", "low", "high", "invalid"],
-      status: ["pending", "completed", "pending"],
+      status: ["pending", "in_progress", "completed", "paused", "pending"],
       label: [ids.two, ids.three, ids.two, "invalid"],
       due: "next7",
       sort: "title_desc",
@@ -82,7 +82,7 @@ describe("task filter URL state", () => {
       q: "roteiro",
       project: ids.one,
       priorities: ["high", "low"],
-      statuses: ["pending", "completed"],
+      statuses: ["pending", "in_progress", "completed", "paused"],
       archived: false,
       due: "next7",
       labelIds: [ids.two, ids.three],
@@ -91,7 +91,7 @@ describe("task filter URL state", () => {
   });
 
   it("falls back safely for unsupported parameters and keeps legacy links working", () => {
-    expect(parseTaskFilters({ project: "not-a-uuid", priority: "critical", status: "in_progress", due: "tomorrow", sort: "unknown" })).toEqual(defaultFilters());
+    expect(parseTaskFilters({ project: "not-a-uuid", priority: "critical", status: "unknown", due: "tomorrow", sort: "unknown" })).toEqual(defaultFilters());
     expect(parseTaskFilters({ state: "archived", sort: "priority" })).toMatchObject({ archived: true, sort: "priority_high" });
     expect(parseTaskFilters({ state: "completed", sort: "due" })).toMatchObject({ statuses: ["completed"], sort: "due_soon" });
   });

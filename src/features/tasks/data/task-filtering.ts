@@ -94,7 +94,7 @@ export function parseTaskFilters(params: Record<string, string | string[] | unde
   const priorities = [...new Set(values("priority").filter((item): item is TaskPriority => ["low", "medium", "high"].includes(item)))];
   const rawStatuses = values("status");
   if (rawStatuses.length === 0 && ["pending", "completed"].includes(legacyState)) rawStatuses.push(legacyState);
-  const statuses = [...new Set(rawStatuses.filter((item): item is TaskStatus => ["pending", "completed"].includes(item)))];
+  const statuses = [...new Set(rawStatuses.filter((item): item is TaskStatus => ["pending", "in_progress", "completed", "paused"].includes(item)))];
   const labelIds = [...new Set(values("label").filter(isUuid))].slice(0, 20);
   const due = value("due");
   const project = value("project");

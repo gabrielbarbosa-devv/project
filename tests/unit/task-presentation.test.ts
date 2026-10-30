@@ -68,15 +68,17 @@ describe("colunas Kanban", () => {
     const items = [
       task({ id: "pending-one", status: "pending" }),
       task({ id: "pending-two", status: "pending" }),
+      task({ id: "progress", status: "in_progress" }),
       task({ id: "completed", status: "completed", completed_at: "2026-10-24T12:00:00.000Z" }),
+      task({ id: "paused", status: "paused" }),
     ];
     const columns = groupKanbanTasks(items);
 
     expect(columns.map(({ key, label, tasks: columnTasks }) => [key, label, columnTasks.length])).toEqual([
       ["pending", "A fazer", 2],
-      ["in_progress", "Em andamento", 0],
+      ["in_progress", "Em andamento", 1],
       ["completed", "Concluídas", 1],
-      ["paused", "Pausadas", 0],
+      ["paused", "Pausadas", 1],
     ]);
     expect(columns.flatMap(({ tasks: columnTasks }) => columnTasks.map(({ id }) => id)).sort()).toEqual(
       items.map(({ id }) => id).sort(),
@@ -93,7 +95,7 @@ describe("colunas Kanban", () => {
   });
 
   it("identifica registros reais cujo status ainda não está mapeado para uma coluna", () => {
-    const unsupported = task({ id: "unsupported", status: "in_progress" as unknown as Task["status"] });
+    const unsupported = task({ id: "unsupported", status: "legacy_status" });
     const tasks = [unsupported];
     const unmapped = getUnmappedKanbanTasks(tasks, groupKanbanTasks(tasks));
 

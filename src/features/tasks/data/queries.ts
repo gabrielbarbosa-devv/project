@@ -35,7 +35,7 @@ export type TodayWorkspaceData = {
 
 export type { TaskGroup } from "@/features/tasks/data/presentation";
 export type TaskPriority = "low" | "medium" | "high";
-export type TaskStatus = "pending" | "completed";
+export type TaskStatus = "pending" | "in_progress" | "completed" | "paused";
 export type TaskDueFilter = "" | "overdue" | "today" | "next7" | "none";
 export type TaskSort =
   | "manual"
